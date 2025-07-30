@@ -430,7 +430,7 @@ export default function ReportsPage() {
                       {check.amount.toLocaleString()} ₪
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(check.dueDate).toLocaleDateString('ar-SA')}
+                      {new Date(check.dueDate).toLocaleDateString('en-GB')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {check.bankName}

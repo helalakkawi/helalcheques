@@ -11,6 +11,7 @@ export default function Home() {
     dueAmount: 0,
     upcomingDue: 0
   });
+  const [monthlyStats, setMonthlyStats] = useState<any[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -43,6 +44,39 @@ export default function Home() {
         const checkDate = new Date(check.dueDate);
         return checkDate >= today && checkDate <= next15Days && check.status === 'received';
       });
+
+      // حساب المبالغ الشهرية
+      const monthlyData: { [key: string]: { month: string; incoming: number; outgoing: number; total: number; } } = {};
+      
+      checks.forEach((check: any) => {
+        const date = new Date(check.dueDate);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const monthName = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            month: monthName,
+            incoming: 0,
+            outgoing: 0,
+            total: 0
+          };
+        }
+
+        if (check.type === 'incoming') {
+          monthlyData[monthKey].incoming += check.amount;
+        } else {
+          monthlyData[monthKey].outgoing += check.amount;
+        }
+        monthlyData[monthKey].total += check.amount;
+      });
+
+      const sortedMonthlyStats = Object.entries(monthlyData)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, data]) => data);
       
       setStats({
         totalChecks: checks2025.length,
@@ -50,6 +84,8 @@ export default function Home() {
         dueAmount: checks2026.reduce((sum: number, check: any) => sum + check.amount, 0),
         upcomingDue: upcomingChecks.reduce((sum: number, check: any) => sum + check.amount, 0)
       });
+
+      setMonthlyStats(sortedMonthlyStats);
     }
   }, []);
 
@@ -134,6 +170,38 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Monthly Statistics */}
+        {isClient && monthlyStats.length > 0 && (
+          <div className="bg-white rounded-lg shadow mb-8">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">المبالغ الإجمالية لكل شهر</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {monthlyStats.map((stat, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">{stat.month}</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-blue-600">قبض:</span>
+                        <span className="font-bold text-blue-600">{stat.incoming.toLocaleString()} ₪</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-red-600">صرف:</span>
+                        <span className="font-bold text-red-600">{stat.outgoing.toLocaleString()} ₪</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                        <span className="text-sm text-gray-900 font-medium">الإجمالي:</span>
+                        <span className="font-bold text-gray-900">{stat.total.toLocaleString()} ₪</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -242,7 +310,7 @@ function DueChecksAlert() {
           <div className="flex-1">
             <p className="font-medium text-gray-900">{check.beneficiary}</p>
             <p className="text-sm text-gray-600" suppressHydrationWarning={true}>
-              {check.amount.toLocaleString()} ₪ - {new Date(check.dueDate).toLocaleDateString('ar-SA')}
+              {check.amount.toLocaleString()} ₪ - {new Date(check.dueDate).toLocaleDateString('en-GB')}
             </p>
           </div>
           <span className={`px-2 py-1 rounded-full text-xs ${
@@ -305,7 +373,7 @@ function RecentActivity() {
             <p className="font-medium text-gray-900">{check.beneficiary}</p>
             <p className="text-sm text-gray-600">شيك رقم {check.checkNumber} - {check.bankName}</p>
             <p className="text-xs text-gray-500" suppressHydrationWarning={true}>
-              {new Date(check.createdAt).toLocaleDateString('ar-SA')}
+              {new Date(check.createdAt).toLocaleDateString('en-GB')}
             </p>
           </div>
           <div className="text-left">

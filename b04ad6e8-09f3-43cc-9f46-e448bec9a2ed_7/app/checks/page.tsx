@@ -35,24 +35,24 @@ export default function ChecksPage() {
       const checks = JSON.parse(savedChecks);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const updatedChecks = checks.map((check: any) => {
         const dueDate = new Date(check.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-        
+
         if (check.status === 'received' && dueDate.getTime() === today.getTime()) {
           return { ...check, status: 'due' };
         }
         return check;
       });
-      
+
       localStorage.setItem('bankChecks', JSON.stringify(updatedChecks));
       setChecks(updatedChecks);
     }
   };
 
   const handleStatusChange = (checkId: string, newStatus: string) => {
-    const updatedChecks = checks.map(check => 
+    const updatedChecks = checks.map(check =>
       check.id === checkId ? { ...check, status: newStatus } : check
     );
     setChecks(updatedChecks);
@@ -61,7 +61,7 @@ export default function ChecksPage() {
   };
 
   const handleEditCheck = (updatedCheck: any) => {
-    const updatedChecks = checks.map(check => 
+    const updatedChecks = checks.map(check =>
       check.id === updatedCheck.id ? updatedCheck : check
     );
     setChecks(updatedChecks);
@@ -79,12 +79,144 @@ export default function ChecksPage() {
 
   const filteredChecks = checks.filter(check => {
     const matchesFilter = filter === 'all' || check.status === filter;
-    const matchesSearch = 
+    const matchesSearch =
       check.beneficiary.toLowerCase().includes(searchTerm.toLowerCase()) ||
       check.checkNumber.toString().includes(searchTerm) ||
       check.bankName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  function DueChecksAlert() {
+    const [dueChecks, setDueChecks] = useState<any[]>([]);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+      setIsClient(true);
+
+      const savedChecks = localStorage.getItem('bankChecks');
+      if (savedChecks) {
+        const checks = JSON.parse(savedChecks);
+        const today = new Date();
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(today.getDate() + 3);
+
+        const upcoming = checks.filter((check: any) => {
+          const checkDate = new Date(check.dueDate);
+          return checkDate >= today && checkDate <= threeDaysFromNow && check.status === 'received';
+        });
+
+        setDueChecks(upcoming);
+      }
+    }, []);
+
+    if (!isClient) {
+      return (
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-600">جاري التحميل...</p>
+        </div>
+      );
+    }
+
+    if (dueChecks.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <i className="ri-check-line text-4xl text-green-500 mb-2"></i>
+          <p className="text-gray-600">لا توجد شيكات مستحقة خلال الأيام القادمة</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {dueChecks.map((check, index) => (
+          <div key={index} className="flex items-center p-3 bg-yellow-50 rounded-lg">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full ml-3"></div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900">{check.beneficiary}</p>
+              <p className="text-sm text-gray-600" suppressHydrationWarning={true}>
+                {check.amount.toLocaleString()} ₪ - {new Date(check.dueDate).toLocaleDateString('en-GB')}
+              </p>
+            </div>
+            <span className={`px-2 py-1 rounded-full text-xs ${
+              check.type === 'outgoing' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+            }`}>
+              {check.type === 'outgoing' ? 'صرف' : 'قبض'}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function RecentActivity() {
+    const [recentChecks, setRecentChecks] = useState<any[]>([]);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+      setIsClient(true);
+
+      const savedChecks = localStorage.getItem('bankChecks');
+      if (savedChecks) {
+        const checks = JSON.parse(savedChecks);
+        const recent = checks
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+        setRecentChecks(recent);
+      }
+    }, []);
+
+    if (!isClient) {
+      return (
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-600">جاري التحميل...</p>
+        </div>
+      );
+    }
+
+    if (recentChecks.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <i className="ri-file-list-line text-4xl text-gray-300 mb-2"></i>
+          <p className="text-gray-500">لا توجد شيكات مدخلة بعد</p>
+          <Link href="/checks/add" className="text-blue-600 hover:text-blue-800 mt-2 inline-block">
+            إضافة شيك جديد
+          </Link>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {recentChecks.map((check, index) => (
+          <div key={index} className="flex items-center p-4 border border-gray-200 rounded-lg">
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center ml-4">
+              <i className="ri-file-text-line text-gray-600"></i>
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900">{check.beneficiary}</p>
+              <p className="text-sm text-gray-600">شيك رقم {check.checkNumber} - {check.bankName}</p>
+              <p className="text-xs text-gray-500" suppressHydrationWarning={true}>
+                {new Date(check.createdAt).toLocaleDateString('en-GB')}
+              </p>
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-gray-900">{check.amount.toLocaleString()} ₪</p>
+              <span className={`px-2 py-1 rounded-full text-xs ${
+                check.status === 'received' ? 'bg-gray-100 text-gray-800' :
+                  check.status === 'due' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+              }`}>
+                {check.status === 'received' ? 'مستلم' : 
+                 check.status === 'due' ? 'مستحق' : 'تم'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -140,7 +272,7 @@ export default function ChecksPage() {
                 <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">فلترة حسب الحالة</label>
               <select
@@ -155,7 +287,7 @@ export default function ChecksPage() {
                 <option value="received_payment">تم قبضه</option>
               </select>
             </div>
-            
+
             <div className="flex items-end">
               <button
                 onClick={() => {
@@ -186,7 +318,7 @@ export default function ChecksPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center ml-3">
@@ -200,7 +332,7 @@ export default function ChecksPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center ml-3">
@@ -214,7 +346,7 @@ export default function ChecksPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center ml-3">
@@ -229,6 +361,12 @@ export default function ChecksPage() {
             </div>
           </div>
         </div>
+
+        {/* Due Checks Alert */}
+        <DueChecksAlert />
+
+        {/* Recent Activity */}
+        <RecentActivity />
 
         {/* Checks List */}
         {isClient && (

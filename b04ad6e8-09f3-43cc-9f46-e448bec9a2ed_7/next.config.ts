@@ -1,11 +1,13 @@
-/** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV === 'production';
+import type { NextConfig } from "next";
 
-const nextConfig = {
-  output: 'export', // مهم لعمل export كملفات ثابتة
-  basePath: '/cheque-system', // اسم الريبو
-  assetPrefix: isProd ? '/cheque-system/' : '',
-  trailingSlash: true, // يضيف / في نهاية الروابط
+const nextConfig: NextConfig = {
+  output: "export",
+  images: {
+    unoptimized: true,
+  },
+  typescript: {
+    // ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;

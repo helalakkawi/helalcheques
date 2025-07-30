@@ -122,14 +122,14 @@ export default function ChecksList({ checks, onStatusChange, onDelete, onEdit }:
                     <div className="font-medium text-gray-900">{check.beneficiary}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                <td className="px-6 py-4 whitespace-unwrap text-sm text-gray-900 font-mono">
                   {check.checkNumber}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
                   {check.amount.toLocaleString()} ₪
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(check.dueDate)}
+                  {new Date(check.dueDate).toLocaleDateString('en-GB')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {check.bankName}
